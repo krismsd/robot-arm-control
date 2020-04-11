@@ -8,63 +8,56 @@ from stepper import StepperMotor
 
 GPIO.setmode(GPIO.BCM)
 
-
-screen = curses.initscr()
-screen.nodelay(1)
-curses.noecho()
-curses.cbreak()
-
-screen.keypad(True)
-
 try:
-    MOTOR1 = Motor(6, 13)
-    MOTOR2 = Motor(19, 26)
+    motor1 = Motor(6, 13)
+    motor2 = Motor(19, 26)
 
-    with StepperMotor(21, 20) as STEPPER:
-        while True:
+    with StepperMotor(21, 20) as stepper1:
+
+        def updateScreen(screen):
             screen.clear()
-            screen.addstr(0, 0, str(MOTOR1))
-            screen.addstr(1, 0, str(MOTOR2))
-            screen.addstr(2, 0, str(STEPPER))
-
+            screen.addstr(0, 0, str(motor1))
+            screen.addstr(1, 0, str(motor2))
+            screen.addstr(2, 0, str(stepper1))
             screen.refresh()
 
-
-            char = screen.getch()
-            
-            if char == ord('q'):
-                break
-
-            elif char == ord('a'):
-                MOTOR1.up()
+        def handleInputChar(char):
+            if char == ord('a'):
+                motor1.up()
             elif char == ord('s'):
-                MOTOR1.stop()
+                motor1.stop()
             elif char == ord('d'):
-                MOTOR1.down()
+                motor1.down()
 
             elif char == ord('z'):
-                MOTOR2.up()
+                motor2.up()
             elif char == ord('x'):
-                MOTOR2.stop()
+                motor2.stop()
             elif char == ord('c'):
-                MOTOR2.down()
+                motor2.down()
 
             elif char == ord('b'):
-                STEPPER.up()
+                stepper1.up()
             elif char == ord('n'):
-                STEPPER.stop()
+                stepper1.stop()
             elif char == ord('m'):
-                STEPPER.down()
+                stepper1.down()
 
             elif char == ord(' '):
-                MOTOR1.stop()
-                MOTOR2.stop()
-                STEPPER.stop()
+                motor1.stop()
+                motor2.stop()
+                stepper1.stop()
+
+        def cursesLoop(screen):
+            while True:
+                updateScreen(screen)
+
+                char = screen.getch()
+                if char == ord('q'):
+                    break
+                handleInputChar(char)
+
+        curses.wrapper(cursesLoop)
 
 finally:
     GPIO.cleanup()
-
-    curses.nocbreak()
-    screen.keypad(0)
-    curses.echo()
-    curses.endwin()
