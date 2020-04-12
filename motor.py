@@ -16,47 +16,39 @@ class Motor:
         GPIO.setup(self.phasePin, GPIO.OUT)
 
         self.pwm = GPIO.PWM(self.enablePin, 250)
-        self.duty = 0
-
         self.pwm.start(0)
-        self.__reflectDuty()
+
+        self.setSpeed(0)
 
     """
-    Increate PWM duty cycle value to change motor speed. 
-    If value is negative Motor speed is abs(duty) in reverse direction.
+    Set the speed given as a float -1 to 1. Negative speed represents reverse rotation.
+    The speed is projected into a useful duty value (as small duty values may not be enough
+    to actually move the motor)
     """
-    def up(self):
-        self.duty += 10
-        if self.duty > 100:
-            self.duty = 100
+    def setSpeed(self, speed):
+        # Project the speed to the useful duty range (-1 to -0.5, 0.5 to 1 or 0 for stop)
+        if speed == 0:
+            self.duty = 0
+        else:
+            rawDuty = (abs(speed)  / 2) + 0.5
+            self.duty = max(min(rawDuty, -1), 1) * 100 * (1 if speed > 0 else -1)
 
-        self.__reflectDuty()
-
-    """
-    Decrease PWM duty cycle value to change motor speed. 
-    If value is negative Motor speed is abs(duty) in reverse direction.
-    """
-    def down(self):
-        self.duty -= 10
-        if self.duty < -100:
-            self.duty = -100
-            
-        self.__reflectDuty()
-
-    """
-    Set PWN duty cycle to zero, stopping the motor
-    """
-    def stop(self):
-        self.duty = 0
-        self.__reflectDuty()
-
-    def __str__(self):
-        dutyState = 'Stopped'
-        if self.duty != 0:
-            dutyState = "{0} - {1}%".format(('Forward' if self.duty >= 0 else 'Reverse'), str(abs(self.duty)))
-
-        return 'DCMOTOR(enable={0},phase={1}): {2}'.format(self.enablePin, self.phasePin, dutyState)
-
-    def __reflectDuty(self):
         GPIO.output(self.phasePin, GPIO.HIGH if self.duty >= 0 else GPIO.LOW)
         self.pwm.ChangeDutyCycle(abs(self.duty))
+
+    """
+    Get the speed given as a float -1 to 1. Similar to `setSpeed` the speed is projected back
+    from the current duty value
+    """
+    def getSpeed(self):
+        if self.duty == 0:
+            return 0
+
+        return ((abs(self.duty) / 100) - 0.5) * 2 * (1 if self.duty > 0 else -1)
+
+    def __str__(self):
+        return 'DCMOTOR(enable={0},phase={1}): speed={2:.0%}'.format(
+            self.enablePin,
+            self.phasePin,
+            self.getSpeed()
+        )

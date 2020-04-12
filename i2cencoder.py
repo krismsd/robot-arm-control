@@ -2,32 +2,37 @@ import threading
 import time
 import struct
 
-class I2CEncoder:
+from ThreadResource import ThreadResource
+
+class I2CEncoder(ThreadResource):
+    ignoring = True
+    turnValues = [0, 0]
+
+    ioErrors = 0
+
     def __init__(self, bus, i2cAddress):
+        super().__init__()
+
         self.bus = bus
         self.i2cAddress = i2cAddress
 
-        self.turns = None
+    def loop(self):
+        data = None
+        try:
+            data = self.bus.read_i2c_block_data(self.i2cAddress, 0, 4)[:4]
+        except IOError:
+            self.ioErrors += 1
+            return
 
-        self.stopping = False
-        self.thread = threading.Thread(target=self.pollLoop)
+        # Ignore the first read to ensure we're zeroed properly (since encoder holds it's value until read)
+        if self.ignoring:
+            self.ignoring = False
+        else:
+            aDelta, bDelta = struct.unpack('hh', bytes(bytearray(data)))
+            self.turnValues[0] += aDelta
+            self.turnValues[1] += bDelta
 
-    def __enter__(self):
-        self.thread.start()
-        return self
+        time.sleep(0.1)
 
-    def __exit__(self, type, value, traceback):
-        self.stopping = True
-        self.thread.join()
-
-    def pollLoop(self):
-        while not self.stopping:
-            data = self.bus.read_i2c_block_data(self.i2cAddress, 0, 2)[:2]
-
-            # Ignore the first value to ensure we're zeroed properly (since encoder holds it's value until read)
-            if not self.turns is None:
-                self.turns += struct.unpack('h', bytes(bytearray(data)))[0]
-            else:
-                self.turns = 0
-                
-            time.sleep(1)
+    def getTurns(self, idx):
+        return self.turnValues[idx]
