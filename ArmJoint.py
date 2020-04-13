@@ -9,14 +9,13 @@ class ArmJoint(ThreadResource):
     (to determine relative movement of the JointController).
 
     The ArmJoint begins in an indeterminate state where you may move the joint relatively using `setSpeed`, but since no
-    absolute position is available you must initialise it by moving the joint to the minimum angle you desire and
-    calling `setMinPosition`. After this the joint tracks its position relative to the encoder turn value taken
-    when `setMinPosition` was called and will enforce the min and max angles so the JointController won't turn past it.
+    absolute position is available you must initialise it by moving the joint to a known angle and calling `initCurrentAngle`.
+    After this the joint tracks its position relative to the encoder turn value taken when `initCurrentAngle` was called 
+    and will enforce the min and max angles so the JointController will stay within them.
 
     `encoderAngleRatio` is the number of encoder turn counts that correspond to 360deg rotation of the joint. A negative
     value represents the encoder and JointController speed being opposite polarity to one another.
 
-    TODO: set the current angle from any position instead of only at the minimum angle
     TODO: impl moveToAngle (or is this part of some higher controller - moves multiple joint in unison)
     """
 
@@ -57,10 +56,10 @@ class ArmJoint(ThreadResource):
     #     pass # TODO: impl me!
 
     """
-    Set the minimum position of this joint based on the current turn value taken from the encoder
+    Given the angle and the current encoder turn value, set the minimum position of this joint 
     """
-    def setMinPosition(self):
-        self.minPosition = self.encoder.getTurns(self.encoderValueIndex)
+    def initCurrentAngle(self, angle):
+        self.minPosition = self.encoder.getTurns(self.encoderValueIndex) - ((self.encoderAngleRatio * angle) / 360)
 
     """
     Get the current angle of this joint based on the current turn value take nfrom the encoder.

@@ -45,7 +45,7 @@ try:
             elif char == ord('d'):
                 armJoint1.setSpeed(-1)
             elif char == ord('f'):
-                armJoint1.setMinPosition()
+                armJoint1.initCurrentAngle(90)
 
             if char == ord('z'):
                 armJoint2.setSpeed(1)
@@ -54,7 +54,7 @@ try:
             elif char == ord('c'):
                 armJoint2.setSpeed(-1)
             elif char == ord('v'):
-                armJoint2.setMinPosition()
+                armJoint2.initCurrentAngle(90)
 
             elif char == ord('b'):
                 stepper1.up()
